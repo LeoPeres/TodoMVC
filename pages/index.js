@@ -1,65 +1,122 @@
-import Head from 'next/head'
-import styles from '../styles/Home.module.css'
+import React, { useEffect } from "react";
+import cn from "classnames";
+import { useMachine } from "@xstate/react";
+import { Todo } from "../components/Todo";
+import { todosMachine } from "../machines/Todos";
+import { useHashChange } from "../hooks/useHashChange";
 
-export default function Home() {
+function filterTodos(state, todos) {
+  if (state.matches("active")) {
+    return todos.filter((todo) => !todo.completed);
+  }
+  if (state.matches("completed")) {
+    return todos.filter((todo) => todo.completed);
+  }
+  return todos;
+}
+
+export default function Todos() {
+  const [state, send] = useMachine(todosMachine);
+
+  useEffect(() => {
+    send("FETCH");
+  }, []);
+
+  useHashChange(() => {
+    send(`SHOW.${window.location.hash.slice(2) || "all"}`);
+  });
+
+  const { todos } = state.context;
+
+  const numActiveTodos = todos.filter((todo) => !todo.completed).length;
+  const allCompleted = todos.length > 0 && numActiveTodos === 0;
+  const mark = !allCompleted ? "completed" : "active";
+  const markEvent = `TOGGLE.${mark}`;
+  const filteredTodos = filterTodos(state, todos);
+
   return (
-    <div className={styles.container}>
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className={styles.card}
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel Logo" className={styles.logo} />
-        </a>
-      </footer>
-    </div>
-  )
+    <section className="todoapp" data-state={state.toStrings()}>
+      <header className="header">
+        <h1>todos</h1>
+        <input
+          className="new-todo"
+          placeholder="What needs to be done?"
+          autoFocus
+          onKeyPress={(e) => {
+            if (e.key === "Enter") {
+              send("NEWTODO", { value: e.target.value });
+              e.currentTarget.value = "";
+            }
+          }}
+        />
+      </header>
+      <section className="main">
+        <input
+          id="toggle-all"
+          className="toggle-all"
+          type="checkbox"
+          checked={allCompleted}
+          onChange={() => {
+            send(markEvent);
+          }}
+        />
+        <label htmlFor="toggle-all" title={`Mark all as ${mark}`}>
+          Mark all as {mark}
+        </label>
+        <ul className="todo-list">
+          {filteredTodos.map((todo) => (
+            <Todo key={todo.id} todoRef={todo.ref} />
+          ))}
+        </ul>
+      </section>
+      {!!todos.length && (
+        <footer className="footer">
+          <span className="todo-count">
+            <strong>{numActiveTodos}</strong> item
+            {numActiveTodos === 1 ? "" : "s"} left
+          </span>
+          <ul className="filters">
+            <li>
+              <a
+                className={cn({
+                  selected: state.matches("all"),
+                })}
+                href="#/"
+              >
+                All
+              </a>
+            </li>
+            <li>
+              <a
+                className={cn({
+                  selected: state.matches("active"),
+                })}
+                href="#/active"
+              >
+                Active
+              </a>
+            </li>
+            <li>
+              <a
+                className={cn({
+                  selected: state.matches("completed"),
+                })}
+                href="#/completed"
+              >
+                Completed
+              </a>
+            </li>
+          </ul>
+          {numActiveTodos < todos.length && (
+            <button
+              onClick={(_) => send("CLEAR_COMPLETED")}
+              className="clear-completed"
+            >
+              Clear completed
+            </button>
+          )}
+        </footer>
+      )}
+    </section>
+  );
 }
