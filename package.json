@@ -8,8 +8,16 @@
     "start": "next start"
   },
   "dependencies": {
+    "@vercel/node": "^1.8.2",
+    "@xstate/react": "^0.8.1",
+    "classnames": "^2.2.6",
+    "firebase-admin": "^9.1.1",
     "next": "9.5.1",
     "react": "16.13.1",
-    "react-dom": "16.13.1"
+    "react-dom": "16.13.1",
+    "todomvc-app-css": "^2.3.0",
+    "todomvc-common": "^1.0.5",
+    "uuid-v4": "^0.1.0",
+    "xstate": "^4.13.0"
   }
 }
