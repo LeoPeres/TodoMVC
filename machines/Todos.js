@@ -2,7 +2,7 @@ import { Machine, assign, spawn } from "xstate";
 import { todoMachine } from "./Todo";
 import uuid from "uuid-v4";
 
-const apiURL = process.env.apiURL + "/api/todos";
+const apiURL = process.env.VERCEL_URL + "/api/todos";
 
 async function fetchTodos() {
   const todos = await fetch(apiURL);
